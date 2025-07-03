@@ -4,6 +4,7 @@ python -m venv venv
 # เปิดใช้งาน (Activate)
 # บน Windows:
 venv\Scripts\activate
+
 # บน macOS/Linux:
 source venv/bin/activate
 ขั้นตอนที่ 2: ติดตั้ง Dependenciesสร้างไฟล์ชื่อ requirements.txt แล้วคัดลอกเนื้อหาข้างล่างนี้ไปใส่:Pillow
@@ -12,9 +13,9 @@ rembg
 firebase-admin
 จากนั้นรันคำสั่งติดตั้งผ่าน pip:pip install -r requirements.txt
 หมายเหตุ: การติดตั้ง dlib (ซึ่งเป็นส่วนหนึ่งของ face_recognition) อาจใช้เวลานานและอาจต้องการ CMake และ C++ compiler ในระบบของคุณ3. การตั้งค่า (Configuration)ขั้นตอนที่ 1: ดาวน์โหลด Firebase Service Account Keyไปที่ Firebase Console ของโปรเจกต์คุณคลิกที่ไอคอนรูปเฟือง (ข้างๆ Project Overview) > Project settingsไปที่แท็บ Service accountsคลิกที่ปุ่ม Generate new private key แล้วบันทึกไฟล์ .json ที่ได้มาลงในโปรเจกต์ (เช่น ในโฟลเดอร์ชื่อ key/)ขั้นตอนที่ 2: แก้ไขค่าในสคริปต์เปิดไฟล์ firebase_processor_service.py และแก้ไขค่าใน ส่วนที่ 2 (Firebase Setup):SERVICE_ACCOUNT_KEY_PATH: แก้ไขเป็นตำแหน่งที่ถูกต้องของไฟล์ .json ที่คุณดาวน์โหลดมาSERVICE_ACCOUNT_KEY_PATH = "key/your-service-account-file.json"
-FIREBASE_DATABASE_URL: คัดลอก URL ของ Realtime Database ของคุณมาใส่ (ดูได้จากหน้า Realtime Database ใน Firebase Console)FIREBASE_DATABASE_URL = "https://your-project-id-default-rtdb.firebaseio.com/"
+FIREBASE_DATABASE_URL: คัดลอก URL ของ Realtime Database ของคุณมาใส่ (ดูได้จากหน้า Realtime Database ใน Firebase Console)FIREBASE_DATABASE_URL = "[https://your-project-id-default-rtdb.firebaseio.com/](https://your-project-id-default-rtdb.firebaseio.com/)"
 4. การรัน Serviceเมื่อตั้งค่าทุกอย่างเรียบร้อยแล้ว ให้รันสคริปต์จาก Terminal หรือ Command Prompt:python firebase_processor_service.py
-หากสำเร็จ โปรแกรมจะแสดงข้อความว่าเชื่อมต่อ Firebase สำเร็จ และเข้าสู่สถานะ "กำลังรอข้อมูลเพิ่มเข้ามา" ซึ่งหมายความว่า Service ของคุณพร้อมทำงานแล้ว สามารถทดสอบโดยการเพิ่มข้อมูลเข้าไปที่ Path /processed_photos ใน Firebase ได้เลย--- [Cloud Processor] กำลังเริ่มต้นและเชื่อมต่อกับ Firebase ---
+หากสำเร็จ โปรแกรมจะแสดงข้อความว่าเชื่อมต่อ Firebase สำเร็จ และเข้าสู่สถานะ "กำลังรอข้อมูลเพิ่มเข้ามา" ซึ่งหมายความว่า Service ของคุณพร้อมทำงานแล้ว--- [Cloud Processor] กำลังเริ่มต้นและเชื่อมต่อกับ Firebase ---
 ✅ (Cloud Processor) เชื่อมต่อ Firebase สำเร็จแล้ว!
 ✅ เริ่มการเฝ้าดู Path '/processed_photos' แบบ Real-time
 (กด Ctrl+C เพื่อหยุด)
