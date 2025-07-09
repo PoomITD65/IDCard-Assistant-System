@@ -1,5 +1,5 @@
 # ==============================================================================
-# logger_polling.py (เวอร์ชันเฝ้าดู 3 Path และบันทึก Log เป็น .txt)
+# logger_polling.py (เวอร์ชันบันทึก Log เป็น .csv)
 # ==============================================================================
 import firebase_admin
 from firebase_admin import credentials, db
@@ -7,7 +7,8 @@ import sys
 import os
 import json
 import time
-from datetime import datetime # <--- เพิ่ม Library สำหรับจัดการเวลา
+from datetime import datetime
+import csv # <--- เพิ่ม Library สำหรับจัดการไฟล์ CSV
 
 # --- 1. การตั้งค่าและเชื่อมต่อกับ Firebase (แบบ Default) ---
 print("--- [Polling Logger] กำลังเริ่มต้นและเชื่อมต่อกับ Firebase ---")
@@ -24,22 +25,33 @@ except Exception as e:
     print(f"❌ (Polling Logger) เกิดข้อผิดพลาดในการเชื่อมต่อ Firebase: {e}")
     sys.exit()
 
-# --- [ใหม่] ส่วนที่ 2: ฟังก์ชันสำหรับบันทึก Log ลงไฟล์ .txt ---
-LOG_FILE_PATH = "activity_log.txt"
+# --- [แก้ไข] ส่วนที่ 2: ฟังก์ชันสำหรับบันทึก Log ลงไฟล์ .csv ---
+LOG_FILE_PATH = "activity_log.csv"
 
-def write_log_to_file(log_message):
+def write_log_to_csv(event_type, full_path, data_preview=""):
     """
-    ฟังก์ชันสำหรับเขียนข้อความ Log พร้อมประทับเวลาลงในไฟล์ .txt
+    ฟังก์ชันสำหรับเขียนข้อมูล Log ลงในไฟล์ .csv
     """
     try:
-        # เปิดไฟล์ในโหมด 'a' (append) เพื่อเขียนข้อมูลต่อท้ายไฟล์เดิม
-        with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+        # ตรวจสอบว่าไฟล์ Log มีอยู่แล้วหรือยัง เพื่อตัดสินใจว่าจะเขียน Header หรือไม่
+        file_exists = os.path.exists(LOG_FILE_PATH)
+        
+        # เปิดไฟล์ในโหมด 'a' (append) และใช้ newline='' เพื่อป้องกันบรรทัดว่างใน Windows
+        with open(LOG_FILE_PATH, "a", encoding="utf-8", newline='') as f:
+            # สร้าง writer object
+            writer = csv.writer(f)
+            
+            # ถ้าเป็นไฟล์ใหม่ ให้เขียน Header ก่อน
+            if not file_exists:
+                writer.writerow(["Timestamp", "EventType", "Path", "DataPreview"])
+            
             # รูปแบบเวลา: YYYY-MM-DD HH:MM:SS
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"[{timestamp}] {log_message}\n")
+            # เขียนข้อมูลแถวใหม่
+            writer.writerow([timestamp, event_type, full_path, data_preview])
+
     except Exception as e:
-        # แสดงข้อผิดพลาดหากไม่สามารถเขียนไฟล์ได้ แต่โปรแกรมยังทำงานต่อ
-        print(f"\n[ERROR] ไม่สามารถเขียน Log ลงไฟล์ได้: {e}")
+        print(f"\n[ERROR] ไม่สามารถเขียน Log ลงไฟล์ CSV ได้: {e}")
 
 # --- ส่วนที่ 3: ฟังก์ชันสำหรับเปรียบเทียบและแสดง Log ---
 def compare_and_log_changes(previous_state, current_state, watched_path):
@@ -55,40 +67,43 @@ def compare_and_log_changes(previous_state, current_state, watched_path):
     for key in new_keys:
         if key not in old_keys or previous_state[key] != current_state[key]:
             change_detected = True
-            # แสดง Log ใน Terminal
-            print("\n------------------- [ตรวจพบความเคลื่อนไหว!] -------------------")
-            print(f"  ประเภทเหตุการณ์           : [ข้อมูลถูกเพิ่ม หรือ เขียนทับ] (ADD / OVERWRITE)")
             full_path = f"{watched_path.rstrip('/')}/{key}"
-            print(f"  ตำแหน่งที่เกิด (Path)      : {full_path}")
+            event_type = "ADD/OVERWRITE"
+            
+            # แสดง Log ใน Terminal
+            print(f"\n------------------- [ตรวจพบ: {event_type}] -------------------")
+            print(f"  Path: {full_path}")
             
             data = current_state[key]
+            data_preview = ""
             if isinstance(data, dict):
                 preview_data = data.copy()
                 if 'imageBase64' in preview_data:
                     preview_data['imageBase64'] = preview_data['imageBase64'][:50] + '...'
-                print(f"  ข้อมูล (Data)             : {json.dumps(preview_data, indent=2)}")
+                data_preview = json.dumps(preview_data)
+                print(f"  Data: {json.dumps(preview_data, indent=2)}")
             else:
-                print(f"  ข้อมูล (Data)             : {data}")
+                data_preview = str(data)
+                print(f"  Data: {data_preview}")
             print("-------------------------------------------------------------")
             
-            # [ใหม่] บันทึก Log ลงไฟล์ .txt
-            log_message = f"EVENT: ADD/OVERWRITE | PATH: {full_path}"
-            write_log_to_file(log_message)
+            # [แก้ไข] บันทึก Log ลงไฟล์ .csv
+            write_log_to_csv(event_type, full_path, data_preview)
 
     # --- ตรวจสอบการลบ ---
     for key in old_keys:
         if key not in new_keys:
             change_detected = True
-            # แสดง Log ใน Terminal
-            print("\n------------------- [ตรวจพบความเคลื่อนไหว!] -------------------")
-            print(f"  ประเภทเหตุการณ์           : [ข้อมูลถูกลบ] (DELETE)")
             full_path = f"{watched_path.rstrip('/')}/{key}"
-            print(f"  ตำแหน่งที่เกิด (Path)      : {full_path}")
+            event_type = "DELETE"
+            
+            # แสดง Log ใน Terminal
+            print(f"\n------------------- [ตรวจพบ: {event_type}] -------------------")
+            print(f"  Path: {full_path}")
             print("-------------------------------------------------------------")
 
-            # [ใหม่] บันทึก Log ลงไฟล์ .txt
-            log_message = f"EVENT: DELETE | PATH: {full_path}"
-            write_log_to_file(log_message)
+            # [แก้ไข] บันทึก Log ลงไฟล์ .csv
+            write_log_to_csv(event_type, full_path)
     
     return change_detected
 
@@ -122,7 +137,7 @@ if __name__ == "__main__":
             
             if any_changes_this_cycle:
                 print("\n======================================================")
-                print("              กำลังรอข้อมูลเคลื่อไหว")
+                print("              กำลังรอข้อมูลใหม่เข้ามา")
                 print("======================================================")
             else:
                 sys.stdout.write(f"\rไม่มีการเคลื่อนไหวของข้อมูล, กำลังตรวจสอบรอบต่อไป{'.' * (int(time.time()) % 4)}")
