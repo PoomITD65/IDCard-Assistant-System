@@ -109,7 +109,7 @@ def compare_and_log_changes(previous_state, current_state, watched_path):
 
 # --- ส่วนที่ 4: ส่วนหลักสำหรับรันโปรแกรม Service ---
 if __name__ == "__main__":
-    paths_to_watch = ['/processed_photos', '/finish_photos', '/error_photos', '/account']
+    paths_to_watch = ['/processed_photos', '/finish_photos', '/error_photos', '/account', '/schools']
 
     print(f"\n✅ เริ่มการตรวจสอบ {len(paths_to_watch)} Path ทุกๆ 5 วินาที")
     print(f"✅ Log ทั้งหมดจะถูกบันทึกที่ไฟล์: '{LOG_FILE_PATH}'")
